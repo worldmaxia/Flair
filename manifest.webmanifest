@@ -1,0 +1,44 @@
+{
+  "name": "Flare Launcher",
+  "short_name": "Flare",
+  "description": "Il tuo launcher personale per app HTML. Raccogli, organizza e lancia tutte le tue creazioni.",
+  "start_url": "./launcher-v18.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070b16",
+  "theme_color": "#0a0a0f",
+  "lang": "it",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Le Mie App",
+      "short_name": "App",
+      "description": "Vai direttamente alle tue app salvate",
+      "url": "./launcher-v18.html#apps",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Files",
+      "short_name": "Files",
+      "description": "Accedi al registro file",
+      "url": "./launcher-v18.html#files",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
