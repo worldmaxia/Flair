@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#070b16"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Seed Generator"/>
+<title>Seed Generator · Generatore Idee</title>
+<style>
+/* =====================================================
+   SEED GENERATOR — Visual layer da Flare Launcher
+   Logica JS invariata; solo stile cambiato.
+   ===================================================== */
+:root{
+  --bg:    #070b16;
+  --bor:   rgba(255,255,255,.10);
+  /* Palette multicolore */
+  --c1:  #60a5fa;   /* blue  */
+  --c2:  #34d399;   /* green */
+  --c3:  #a78bfa;   /* purple */
+  --c4:  #fb923c;   /* orange */
+  /* Text */
+  --txt: #e9eef7;
+  --dim: #aab4c5;
+  /* Status */
+  --ok:  #34d399;
+  --err: #fb7185;
+  --warn:#fbbf24;
+  /* Misc */
+  --shadow: 0 22px 60px rgba(0,0,0,.45);
+  --r:  18px;
+  --r2: 22px;
+  --anim: 180ms;
+}
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+
+html,body{
+  min-height:100%;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji", sans-serif;
+  background:
+    radial-gradient(1100px 700px at 20% -8%, rgba(96,165,250,.20), transparent 60%),
+    radial-gradient(800px 600px at 110% 22%,  rgba(167,139,250,.16), transparent 55%),
+    radial-gradient(800px 700px at 40% 120%,  rgba(52,211,153,.08),  transparent 55%),
+    var(--bg);
+  color:var(--txt);
+  overflow-x:hidden;
+}
+
+/* ── SCREENS ─────────────────────────────────────────── */
+.screen{
+  display:none;
+  min-height:100dvh;
+  flex-direction:column;
+  position:relative;
+}
+.screen.active{ display:flex; animation:fu .28s ease; }
+@keyframes fu{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+/* ── SCROLLABLE CONTENT ──────────────────────────────── */
+.pc{ flex:1; overflow-y:auto; padding:14px 16px 100px; max-width:1180px; width:100%; margin:0 auto; }
+
+/* ── STICKY TOP BAR ──────────────────────────────────── */
+.tbar{
+  padding:14px 16px 11px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  background:rgba(7,11,22,.7);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  position:sticky; top:0; z-index:20;
+}
+.tbar-left,.tbar-right{ display:flex; align-items:center; gap:7px; }
+.tbar-brand{ flex:1; min-width:0; }
+.tbar-kicker{
+  font-size:.62rem; letter-spacing:1.8px; text-transform:uppercase;
+  color:var(--c1); font-weight:800; margin-bottom:1px;
+}
+.tbar-title{ font-size:1.1rem; font-weight:900; letter-spacing:-.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.tbtn{
+  width:36px; height:36px; border-radius:11px;
+  border:1px solid rgba(255,255,255,.09); background:rgba(255,255,255,.05);
+  color:var(--dim); font-size:1rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s ease; flex-shrink:0;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
+}
+.tbtn:hover{ background:rgba(255,255,255,.1); color:var(--txt); border-color:rgba(255,255,255,.15); }
+.tbtn:active{ transform:scale(.93); }
+
+/* ── BOTTOM NAV ──────────────────────────────────────── */
+.bnav{
+  position:fixed; bottom:0; left:0; right:0;
+  background:rgba(5,8,18,.92);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-top:1px solid rgba(255,255,255,.07);
+  display:flex; z-index:50;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.ni{
+  flex:1; padding:11px 4px 9px;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  cursor:pointer; border:none; background:none;
+  color:var(--dim); font-family:inherit;
+  transition:color var(--anim) ease;
+  position:relative;
+}
+.ni.active{ color:var(--c1); }
+.ni.active::before{
+  content:'';
+  position:absolute; top:0; left:50%; transform:translateX(-50%);
+  width:28px; height:2px; border-radius:0 0 3px 3px;
+  background:var(--c1); box-shadow:0 0 10px var(--c1);
+}
+.ni-icon{ font-size:1.2rem; transition:transform .2s cubic-bezier(.34,1.56,.64,1); }
+.ni.active .ni-icon{ transform:scale(1.15); }
+.ni-label{ font-size:.58rem; font-weight:800; letter-spacing:.2px; text-transform:uppercase; }
+
+/* ── SECTION LABEL ───────────────────────────────────── */
+.slabel{
+  font-size:.65rem; color:var(--dim); letter-spacing:1.5px;
+  text-transform:uppercase; font-weight:800; margin-bottom:12px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.slabel-badge{
+  font-size:.62rem; padding:3px 9px; border-radius:999px;
+  background:rgba(255,255,255,.06); border:1px solid var(--bor);
+  color:var(--dim); text-transform:none; letter-spacing:0;
+}
+
+/* ── CUBE CARDS (home grid) ──────────────────────────── */
+.cube-grid{
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:11px; margin-bottom:16px;
+}
+@media(min-width:600px){ .cube-grid{ grid-template-columns:repeat(4,1fr); } }
+
+.cube{
+  background: linear-gradient(160deg,rgba(255,255,255,.065) 0%,rgba(255,255,255,.02) 100%);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:var(--r);
+  padding:15px 13px 12px;
+  cursor:pointer;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
+  position:relative; overflow:hidden;
+  display:flex; flex-direction:column; gap:5px;
+  box-shadow:0 4px 20px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.07);
+}
+.cube:hover{ box-shadow:0 8px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.1); border-color:rgba(255,255,255,.14); }
+.cube:active{ transform:scale(.95); }
+/* top accent bar per ogni cubo */
+.cube::before{ content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:var(--r) var(--r) 0 0; }
+.cube[data-c="blue"]::before  { background:linear-gradient(90deg,var(--c1),transparent); box-shadow:0 0 10px rgba(96,165,250,.5); }
+.cube[data-c="green"]::before { background:linear-gradient(90deg,var(--c2),transparent); box-shadow:0 0 10px rgba(52,211,153,.5); }
+.cube[data-c="purple"]::before{ background:linear-gradient(90deg,var(--c3),transparent); box-shadow:0 0 10px rgba(167,139,250,.5); }
+.cube[data-c="orange"]::before{ background:linear-gradient(90deg,var(--c4),transparent); box-shadow:0 0 10px rgba(251,146,60,.5); }
+/* inner shimmer */
+.cube::after{ content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 20% 0%,rgba(255,255,255,.04),transparent 55%); pointer-events:none; }
+
+.cube-num{
+  font-size:.62rem; font-weight:900; letter-spacing:.8px; text-transform:uppercase;
+  margin-bottom:2px;
+}
+.cube[data-c="blue"]   .cube-num{ color:var(--c1); }
+.cube[data-c="green"]  .cube-num{ color:var(--c2); }
+.cube[data-c="purple"] .cube-num{ color:var(--c3); }
+.cube[data-c="orange"] .cube-num{ color:var(--c4); }
+
+.cube-emoji{ font-size:1.6rem; line-height:1; filter:drop-shadow(0 2px 6px rgba(0,0,0,.4)); }
+.cube-title{ font-weight:800; font-size:.88rem; line-height:1.25; letter-spacing:-.15px; }
+.cube-sub{ font-size:.66rem; color:var(--dim); line-height:1.5; }
+.cube-foot{ font-size:.62rem; color:var(--dim); opacity:.55; margin-top:2px; }
+
+/* ── STATS GRID ──────────────────────────────────────── */
+.sgrid{
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:10px; margin-bottom:14px;
+}
+@media(min-width:600px){ .sgrid{ grid-template-columns:repeat(4,1fr); } }
+
+.sc{
+  background:linear-gradient(160deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.025) 100%);
+  border:1px solid rgba(255,255,255,.08); border-radius:var(--r2);
+  box-shadow:0 8px 32px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.07);
+  padding:16px 14px; cursor:pointer;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease;
+  position:relative; overflow:hidden;
+}
+.sc:active{ transform:scale(.95); }
+.sc::before{ content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 30% 0%,rgba(255,255,255,.05),transparent 60%); pointer-events:none; }
+.sc::after{ content:''; position:absolute; bottom:0; left:0; right:0; height:3px; border-radius:0 0 var(--r2) var(--r2); }
+.sc.s1::after{ background:linear-gradient(90deg,var(--c1),rgba(96,165,250,0));  box-shadow:0 0 12px var(--c1); }
+.sc.s2::after{ background:linear-gradient(90deg,var(--c2),rgba(52,211,153,0));  box-shadow:0 0 12px var(--c2); }
+.sc.s3::after{ background:linear-gradient(90deg,var(--c3),rgba(167,139,250,0)); box-shadow:0 0 12px var(--c3); }
+.sc.s4::after{ background:linear-gradient(90deg,var(--c4),rgba(251,146,60,0));  box-shadow:0 0 12px var(--c4); }
+
+.sico{ font-size:1.1rem; display:block; margin-bottom:6px; }
+.snum{
+  font-size:clamp(1.35rem, 4vw, 1.9rem); font-weight:950; line-height:1; letter-spacing:-1px;
+  margin-bottom:4px; font-variant-numeric:tabular-nums;
+}
+.sc.s1 .snum{ color:var(--c1); }
+.sc.s2 .snum{ color:var(--c2); }
+.sc.s3 .snum{ color:var(--c3); }
+.sc.s4 .snum{ color:var(--c4); }
+.slbl{ font-size:.65rem; color:var(--dim); line-height:1.5; font-weight:700; }
+
+/* ── CARD GENERIC ────────────────────────────────────── */
+.card{
+  background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.08); border-radius:var(--r2);
+  padding:15px; margin-bottom:11px;
+  box-shadow:0 4px 20px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+/* ── SPACING UTILITIES ───────────────────────────────── */
+.gap-s{ height:9px; }
+.gap-m{ height:14px; }
+
+/* ── MACRO CARDS (contesti) ──────────────────────────── */
+.macro-grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;
+}
+@media(min-width:600px){ .macro-grid{ grid-template-columns:repeat(4,1fr); } }
+
+.macro-card{
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08); border-radius:var(--r);
+  padding:13px; cursor:pointer;
+  transition:all .18s ease;
+  box-shadow:0 3px 14px rgba(0,0,0,.25);
+}
+.macro-card:active{ transform:scale(.96); }
+.macro-card.active{
+  border-color:var(--c3); background:rgba(167,139,250,.10);
+  box-shadow:0 0 0 1px rgba(167,139,250,.18), 0 6px 20px rgba(0,0,0,.3);
+}
+.macro-title{ font-weight:800; font-size:.85rem; margin-bottom:4px; letter-spacing:-.1px; }
+.macro-desc{ font-size:.68rem; color:var(--dim); line-height:1.5; }
+
+/* ── CHIP ROW (mix categorie) ────────────────────────── */
+.chip-row{ display:flex; flex-wrap:wrap; gap:7px; }
+.chip{
+  padding:6px 11px; border-radius:999px;
+  font-size:.65rem; font-weight:700;
+  border:1px solid rgba(255,255,255,.09);
+  background:rgba(255,255,255,.03);
+  color:var(--dim); cursor:pointer; user-select:none;
+  transition:all .15s ease;
+}
+.chip.active{
+  background:rgba(167,139,250,.16);
+  border-color:rgba(167,139,250,.38);
+  color:#e0d8ff;
+}
+
+/* ── IDEA CARDS ──────────────────────────────────────── */
+.idea-grid{
+  display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px;
+}
+@media(min-width:600px){ .idea-grid{ grid-template-columns:repeat(2,1fr); } }
+
+.idea-card{
+  background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.08); border-radius:var(--r2);
+  padding:14px;
+  box-shadow:0 4px 18px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.idea-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:8px; }
+.idea-num{
+  width:30px; height:30px; border-radius:9px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-weight:900; font-size:.78rem; flex-shrink:0;
+}
+/* colori idea-num per categoria */
+.icat-sci  .idea-num{ background:rgba(96,165,250,.14);  color:var(--c1); border:1px solid rgba(96,165,250,.22); }
+.icat-biz  .idea-num{ background:rgba(251,146,60,.14);  color:var(--c4); border:1px solid rgba(251,146,60,.22); }
+.icat-app  .idea-num{ background:rgba(52,211,153,.14);  color:var(--c2); border:1px solid rgba(52,211,153,.22); }
+.icat-sto  .idea-num{ background:rgba(251,191,36,.14);  color:#fbbf24;   border:1px solid rgba(251,191,36,.22); }
+.icat-art  .idea-num{ background:rgba(167,139,250,.14); color:var(--c3); border:1px solid rgba(167,139,250,.22); }
+.icat-med  .idea-num{ background:rgba(251,113,133,.14); color:#fb7185;   border:1px solid rgba(251,113,133,.22); }
+.icat-vit  .idea-num{ background:rgba(52,211,153,.14);  color:var(--c2); border:1px solid rgba(52,211,153,.22); }
+.icat-soc  .idea-num{ background:rgba(96,165,250,.14);  color:var(--c1); border:1px solid rgba(96,165,250,.22); }
+
+.idea-tag{
+  font-size:.62rem; padding:4px 10px; border-radius:999px; font-weight:700;
+}
+.icat-sci  .idea-tag{ background:rgba(96,165,250,.1);  border:1px solid rgba(96,165,250,.2);  color:var(--c1); }
+.icat-biz  .idea-tag{ background:rgba(251,146,60,.1);  border:1px solid rgba(251,146,60,.2);  color:var(--c4); }
+.icat-app  .idea-tag{ background:rgba(52,211,153,.1);  border:1px solid rgba(52,211,153,.2);  color:var(--c2); }
+.icat-sto  .idea-tag{ background:rgba(251,191,36,.1);  border:1px solid rgba(251,191,36,.2);  color:#fbbf24;   }
+.icat-art  .idea-tag{ background:rgba(167,139,250,.1); border:1px solid rgba(167,139,250,.2); color:var(--c3); }
+.icat-med  .idea-tag{ background:rgba(251,113,133,.1); border:1px solid rgba(251,113,133,.2); color:#fb7185;   }
+.icat-vit  .idea-tag{ background:rgba(52,211,153,.1);  border:1px solid rgba(52,211,153,.2);  color:var(--c2); }
+.icat-soc  .idea-tag{ background:rgba(96,165,250,.1);  border:1px solid rgba(96,165,250,.2);  color:var(--c1); }
+
+.idea-text{
+  font-size:.92rem; line-height:1.65; color:var(--txt);
+  white-space:pre-wrap; margin-bottom:10px;
+}
+.idea-meta{ font-size:.65rem; color:var(--dim); margin-bottom:10px; line-height:1.5; }
+.card-actions{ display:flex; gap:7px; flex-wrap:wrap; }
+
+/* ── HISTORY ITEMS ───────────────────────────────────── */
+.history-item{
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07); border-radius:var(--r);
+  padding:13px; margin-bottom:9px;
+}
+.history-meta{ font-size:.65rem; color:var(--dim); margin-bottom:8px; line-height:1.7; }
+.history-badge{
+  display:inline-block; margin-right:6px; margin-bottom:4px;
+  padding:3px 9px; border-radius:999px; font-size:.62rem; font-weight:700;
+  background:rgba(251,146,60,.1); border:1px solid rgba(251,146,60,.2); color:var(--c4);
+}
+.history-text{
+  font-size:.82rem; color:var(--txt); line-height:1.65;
+  white-space:pre-wrap; margin-top:8px;
+}
+
+/* ── FOLDER CHIPS (archivio) ─────────────────────────── */
+.folder-row{ display:flex; gap:7px; flex-wrap:wrap; margin-bottom:12px; }
+.fbtn{
+  padding:7px 13px; border-radius:999px; font-size:.62rem; font-weight:700;
+  border:1px solid rgba(255,255,255,.09); background:rgba(255,255,255,.03);
+  color:var(--dim); cursor:pointer; transition:all .15s;
+}
+.fbtn.active{
+  border-color:var(--c4); background:rgba(251,146,60,.12); color:var(--c4);
+}
+
+/* ── BUILDER CARDS ───────────────────────────────────── */
+.builder-grid{
+  display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px;
+}
+@media(min-width:600px){ .builder-grid{ grid-template-columns:repeat(2,1fr); } }
+
+.builder-card{
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07); border-radius:var(--r);
+  padding:13px;
+}
+.builder-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; gap:8px; }
+.builder-title{ font-size:.85rem; font-weight:800; }
+
+/* ── INPUTS ──────────────────────────────────────────── */
+select, textarea, input[type="text"] {
+  width:100%;
+  background:rgba(0,0,0,.22);
+  border:1px solid var(--bor); border-radius:12px;
+  color:var(--txt); font-size:.75rem;
+  padding:10px 13px; outline:none;
+  transition:border-color var(--anim) ease;
+  font-family:inherit;
+}
+select:focus, textarea:focus, input:focus{ border-color:var(--c1); }
+textarea{ min-height:95px; resize:vertical; line-height:1.6; }
+label{
+  display:block; font-size:.68rem; color:var(--dim); font-weight:700;
+  letter-spacing:.8px; text-transform:uppercase; margin-bottom:6px; margin-top:13px;
+}
+label:first-child{ margin-top:0; }
+
+/* ── BUTTONS ─────────────────────────────────────────── */
+button{
+  border:none; border-radius:var(--r); cursor:pointer;
+  font-family:inherit; font-weight:700; transition:all .18s ease;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+}
+.btn-pri{
+  width:100%; padding:14px;
+  background:linear-gradient(135deg, var(--c1), rgba(52,211,153,.9));
+  border:none; color:#030a14; font-size:.95rem; font-weight:900;
+  box-shadow:0 0 0 1px rgba(96,165,250,.2), 0 10px 30px rgba(96,165,250,.25);
+  letter-spacing:-.2px;
+}
+.btn-pri:hover{ filter:brightness(1.08); box-shadow:0 0 0 1px rgba(96,165,250,.3), 0 14px 36px rgba(96,165,250,.35); }
+.btn-pri:active{ transform:scale(.97); }
+.btn-pri:disabled{ opacity:.5; cursor:not-allowed; filter:none; }
+.btn-pri.loading{ animation:pulse .7s ease-in-out infinite alternate; }
+@keyframes pulse{ from{transform:scale(1)} to{transform:scale(1.02)} }
+
+.btn-ghost{
+  padding:9px 14px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.09); color:var(--dim); font-size:.75rem;
+}
+.btn-ghost:hover{ background:rgba(255,255,255,.08); color:var(--txt); border-color:rgba(255,255,255,.14); }
+.btn-ghost:active{ transform:scale(.96); }
+
+.btn-danger{
+  padding:9px 14px;
+  background:rgba(251,113,133,.12);
+  border:1px solid rgba(251,113,133,.3); color:var(--err); font-size:.75rem;
+}
+.btn-danger:hover{ background:rgba(251,113,133,.2); }
+.btn-danger:active{ transform:scale(.96); }
+
+/* ── TAG PILL ────────────────────────────────────────── */
+.pill{
+  display:inline-flex; align-items:center; padding:4px 10px; border-radius:999px;
+  font-size:.62rem; font-weight:700;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.09); color:var(--dim);
+}
+.pill.blue  { background:rgba(96,165,250,.1);  border-color:rgba(96,165,250,.2);  color:var(--c1); }
+.pill.green { background:rgba(52,211,153,.1);  border-color:rgba(52,211,153,.2);  color:var(--c2); }
+.pill.purple{ background:rgba(167,139,250,.1); border-color:rgba(167,139,250,.2); color:var(--c3); }
+.pill.orange{ background:rgba(251,146,60,.1);  border-color:rgba(251,146,60,.2);  color:var(--c4); }
+
+/* ── PREVIEW BOX ─────────────────────────────────────── */
+.preview-box{
+  background:rgba(0,0,0,.22); border:1px solid var(--bor); border-radius:var(--r);
+  padding:13px; margin-top:10px;
+}
+.preview-name{ font-size:.82rem; font-weight:800; margin-bottom:5px; color:var(--c3); }
+.preview-desc{ font-size:.65rem; color:var(--dim); line-height:1.65; margin-bottom:8px; }
+.preview-example{ font-size:.62rem; color:var(--dim); line-height:1.65; }
+.preview-example strong{ color:var(--txt); }
+
+/* ── EMPTY STATE ─────────────────────────────────────── */
+.empty{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:50px 20px; text-align:center; gap:8px;
+}
+.empty-ic{ font-size:2.5rem; opacity:.22; }
+.empty-t{ font-size:.9rem; font-weight:700; color:var(--dim); }
+.empty-s{ font-size:.62rem; color:var(--dim); line-height:1.8; max-width:260px; }
+
+/* ── TOAST ───────────────────────────────────────────── */
+#toast{
+  position:fixed; bottom:72px; left:50%;
+  transform:translateX(-50%) translateY(12px);
+  background:rgba(11,16,32,.97);
+  border:1px solid var(--bor); border-radius:12px;
+  box-shadow:var(--shadow);
+  padding:9px 18px; font-size:.7rem; color:var(--txt);
+  white-space:nowrap; z-index:300;
+  opacity:0; transition:all .28s; pointer-events:none;
+}
+#toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+#toast.ok   { border-color:rgba(52,211,153,.35); color:var(--c2); }
+#toast.warn { border-color:rgba(251,191,36,.35);  color:var(--warn); }
+#toast.err  { border-color:rgba(251,113,133,.35); color:var(--err); }
+
+/* ── ROW UTILS ───────────────────────────────────────── */
+.row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.row-between{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+
+/* ── SETTINGS PAGE ───────────────────────────────────── */
+.settings-section{ margin-bottom:22px; }
+.settings-row{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:13px 15px;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:var(--r);
+  margin-bottom:9px; cursor:pointer;
+  transition:background .15s;
+}
+.settings-row:active{ background:rgba(255,255,255,.08); }
+.sr-left{ display:flex; align-items:center; gap:11px; }
+.sr-ico{ font-size:1.2rem; }
+.sr-label{ font-size:.82rem; font-weight:700; }
+.sr-sub{ font-size:.65rem; color:var(--dim); margin-top:2px; }
+.sr-ar{ color:var(--dim); opacity:.4; font-size:.9rem; }
+
+/* ── SECONDARY 2-col ─────────────────────────────────── */
+.two-col{ display:grid; grid-template-columns:1fr; gap:11px; margin-bottom:11px; }
+@media(min-width:540px){ .two-col{ grid-template-columns:1fr 1fr; } }
+
+/* ── FAB (Laboratorio) ───────────────────────────────── */
+.fab{
+  position:fixed; bottom:74px; right:17px;
+  width:52px; height:52px; border-radius:16px;
+  background:linear-gradient(145deg, var(--c1), rgba(52,211,153,.9));
+  border:none; color:#030a14; font-size:1.4rem; font-weight:900;
+  cursor:pointer;
+  box-shadow:0 8px 28px rgba(96,165,250,.4), 0 0 0 1px rgba(96,165,250,.2);
+  z-index:40;
+  display:none; align-items:center; justify-content:center;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
+}
+.fab:active{ transform:scale(.88); }
+.fab.visible{ display:flex; animation:fabIn .3s cubic-bezier(.34,1.56,.64,1); }
+@keyframes fabIn{ from{transform:scale(0) rotate(-180deg)} to{transform:scale(1) rotate(0)} }
+
+/* ── HOME MINI-STAT BAR ──────────────────────────────── */
+.home-stats{
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  padding:10px 13px; margin-bottom:16px;
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
+  border-radius:var(--r); font-size:.68rem; color:var(--dim);
+}
+.home-stats strong{ color:var(--txt); }
+.home-stats .dot{ opacity:.25; }
+
+/* ── HOME RECENTI ────────────────────────────────────── */
+.recent-scroll{
+  display:flex; gap:10px; overflow-x:auto; scrollbar-width:none;
+  padding-bottom:4px; margin-bottom:4px;
+}
+.recent-scroll::-webkit-scrollbar{ display:none; }
+
+.rcard{
+  flex-shrink:0; width:220px;
+  background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.08); border-radius:var(--r);
+  padding:13px; cursor:pointer;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1), border-color .18s;
+  box-shadow:0 4px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06);
+  position:relative; overflow:hidden;
+}
+.rcard::before{
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+}
+.rcard.rc1::before{ background:linear-gradient(90deg,var(--c1),transparent); }
+.rcard.rc2::before{ background:linear-gradient(90deg,var(--c2),transparent); }
+.rcard.rc3::before{ background:linear-gradient(90deg,var(--c3),transparent); }
+.rcard.rc4::before{ background:linear-gradient(90deg,var(--c4),transparent); }
+
+.rcard:active{ transform:scale(.95); }
+.rcard:hover{ border-color:rgba(255,255,255,.14); }
+
+.rcard-badges{ display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
+.rcard-badge{
+  font-size:.58rem; font-weight:700; padding:2px 8px; border-radius:999px;
+}
+.rcard-badge.mode-balanced  { background:rgba(96,165,250,.12);  color:var(--c1); border:1px solid rgba(96,165,250,.2); }
+.rcard-badge.mode-practical { background:rgba(52,211,153,.12);  color:var(--c2); border:1px solid rgba(52,211,153,.2); }
+.rcard-badge.mode-wild      { background:rgba(251,113,133,.12); color:#fb7185;   border:1px solid rgba(251,113,133,.2); }
+.rcard-badge.mode-sellable  { background:rgba(251,146,60,.12);  color:var(--c4); border:1px solid rgba(251,146,60,.2); }
+.rcard-badge.goal           { background:rgba(167,139,250,.10); color:var(--c3); border:1px solid rgba(167,139,250,.18); }
+
+.rcard-preview{
+  font-size:.72rem; color:var(--txt); line-height:1.6;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical;
+  overflow:hidden; margin-bottom:8px;
+}
+.rcard-meta{ font-size:.62rem; color:var(--dim); line-height:1.5; }
+.rcard-action{
+  margin-top:10px; width:100%; padding:8px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+  border-radius:10px; color:var(--dim); font-size:.65rem; font-weight:700;
+  cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; justify-content:center; gap:5px;
+}
+.rcard-action:hover{ background:rgba(255,255,255,.09); color:var(--txt); }
+
+/* ── SPUNTO CASUALE ──────────────────────────────────── */
+.spark-btn{
+  width:100%; padding:15px 18px;
+  display:flex; align-items:center; gap:12px;
+  background:linear-gradient(135deg,rgba(167,139,250,.14),rgba(251,113,133,.09));
+  border:1px solid rgba(167,139,250,.3); border-radius:var(--r2);
+  cursor:pointer; margin-bottom:14px;
+  transition:all .18s ease;
+  box-shadow:0 4px 20px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.06);
+  position:relative; overflow:hidden;
+}
+.spark-btn::after{
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 15% 50%,rgba(167,139,250,.08),transparent 60%);
+  pointer-events:none;
+}
+.spark-btn:hover{ border-color:rgba(167,139,250,.5); background:linear-gradient(135deg,rgba(167,139,250,.2),rgba(251,113,133,.13)); box-shadow:0 6px 26px rgba(0,0,0,.35), 0 0 20px rgba(167,139,250,.12); }
+.spark-btn:active{ transform:scale(.98); }
+.spark-btn.spinning .spark-ico{ animation:spin .5s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg) } }
+
+.spark-ico{ font-size:1.5rem; flex-shrink:0; line-height:1; }
+.spark-label{ text-align:left; flex:1; }
+.spark-label-title{ font-size:.9rem; font-weight:900; color:var(--txt); letter-spacing:-.2px; margin-bottom:2px; }
+.spark-label-sub{ font-size:.66rem; color:var(--dim); line-height:1.4; }
+.spark-arrow{ color:var(--c3); font-size:1rem; opacity:.7; }
+
+/* Risultati spunto */
+.spark-results{
+  display:none; flex-direction:column; gap:9px; margin-bottom:14px;
+  animation:fu .22s ease;
+}
+.spark-results.visible{ display:flex; }
+.spark-result-card{
+  background:linear-gradient(160deg,rgba(167,139,250,.08),rgba(255,255,255,.02));
+  border:1px solid rgba(167,139,250,.18); border-radius:var(--r);
+  padding:13px 14px;
+  position:relative;
+}
+.spark-result-card::before{
+  content:''; position:absolute; left:0; top:0; bottom:0;
+  width:2px; border-radius:var(--r) 0 0 var(--r);
+  background:var(--c3);
+}
+.spark-result-num{
+  font-size:.6rem; font-weight:900; color:var(--c3); letter-spacing:1px;
+  text-transform:uppercase; margin-bottom:5px;
+}
+.spark-result-cat{
+  font-size:.6rem; color:var(--dim); margin-bottom:6px;
+  display:flex; align-items:center; gap:5px;
+}
+.spark-result-text{ font-size:.85rem; line-height:1.65; color:var(--txt); }
+.spark-result-actions{ display:flex; gap:6px; margin-top:10px; }
+
+/* ── FOOTER NOTE ─────────────────────────────────────── */
+.footer-note{
+  text-align:center; font-size:.55rem; color:var(--dim);
+  opacity:.4; padding:10px 0 6px; letter-spacing:.5px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SCREEN: HOME ══════════════ -->
+<section id="screen-home" class="screen active" role="main">
+  <div class="tbar">
+    <div class="tbar-left">
+      <span style="font-size:1.5rem; line-height:1; filter:drop-shadow(0 0 12px rgba(96,165,250,.4))">🧊</span>
+    </div>
+    <div class="tbar-brand">
+      <div class="tbar-kicker">Seed Generator</div>
+      <div class="tbar-title">Generatore Idee Creative</div>
+    </div>
+    <div class="tbar-right">
+      <button class="tbtn" id="quickSettingsBtn" title="Settings">⚙️</button>
+      <button class="tbtn" id="quickExportBtn"   title="Esporta">⤓</button>
+      <button class="tbtn" id="quickSaveBtn"     title="Salva">💾</button>
+    </div>
+  </div>
+  <div class="pc">
+    <div class="card" style="margin-bottom:16px;">
+      <p style="font-size:1.4rem;font-weight:900;letter-spacing:-.04em;line-height:1.1;margin-bottom:8px;">Fabbrica di idee quasi infinita</p>
+      <p style="font-size:.75rem;color:var(--dim);line-height:1.65;">Scegli un macro-contesto, imposta modalità e obiettivo, poi lascia che il motore combinatorio produca varianti sempre diverse. Salva quelle che valgono.</p>
+    </div>
+
+    <!-- Mini-stat bar -->
+    <div class="home-stats" id="homeStats"></div>
+
+    <div class="slabel">SEED GENERATOR <span class="slabel-badge">4 blocchi</span></div>
+    <div id="cubeGrid" class="cube-grid"></div>
+
+    <!-- Spunto casuale -->
+    <div style="margin-top:20px;">
+      <div class="slabel">SPUNTO ISTANTANEO</div>
+      <button class="spark-btn" id="sparkBtn" type="button">
+        <span class="spark-ico" id="sparkIco">🎲</span>
+        <span class="spark-label">
+          <div class="spark-label-title">Genera 3 spunti casuali</div>
+          <div class="spark-label-sub">Mix casuale di contesti, modalità e obiettivi — senza configurare nulla</div>
+        </span>
+        <span class="spark-arrow">›</span>
+      </button>
+      <div class="spark-results" id="sparkResults"></div>
+    </div>
+
+    <!-- Recenti (si nasconde se vuoto) -->
+    <div id="homeRecenti" style="display:none;">
+      <div class="slabel" style="margin-top:20px;">RECENTI <span class="slabel-badge" id="recentiCount">0</span></div>
+      <div class="recent-scroll" id="recentScroll"></div>
+    </div>
+
+    <div class="footer-note">single-file HTML · navigazione a schermate · stile Seed Generator + Flare</div>
+  </div>
+</section>
+
+<!-- ══════════════ SCREEN: CONTESTI ══════════════ -->
+<section id="screen-contesti" class="screen">
+  <div class="tbar">
+    <div class="tbar-left">
+      <button class="tbtn" id="backBtnContesti">←</button>
+    </div>
+    <div class="tbar-brand">
+      <div class="tbar-kicker">Blocco 01</div>
+      <div class="tbar-title">Contesti</div>
+    </div>
+    <div class="tbar-right">
+      <span class="pill purple">macro</span>
+    </div>
+  </div>
+  <div class="pc">
+    <div class="slabel">MACRO-CONTESTI <span class="slabel-badge">8 mondi</span></div>
+    <div id="macroGrid" class="macro-grid"></div>
+
+    <div class="slabel" style="margin-top:16px;">IBRIDA CON...</div>
+    <div id="mixChips" class="chip-row" style="margin-bottom:16px;"></div>
+
+    <div id="previewBox" class="preview-box">
+      <div class="preview-name" id="previewTitle">—</div>
+      <div class="preview-desc"  id="previewDesc">Seleziona un contesto per vedere la descrizione.</div>
+      <div class="preview-example" id="previewExample"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ SCREEN: LABORATORIO ══════════════ -->
+<section id="screen-laboratorio" class="screen">
+  <div class="tbar">
+    <div class="tbar-left">
+      <button class="tbtn" id="backBtnLab">←</button>
+    </div>
+    <div class="tbar-brand">
+      <div class="tbar-kicker">Blocco 02</div>
+      <div class="tbar-title">Laboratorio</div>
+    </div>
+    <div class="tbar-right">
+      <span class="pill green">genera</span>
+    </div>
+  </div>
+  <div class="pc">
+    <!-- Stats -->
+    <div class="sgrid">
+      <div class="sc s1" title="combinazioni stimate">
+        <span class="sico">⚡</span>
+        <div class="snum" id="comboCount">0</div>
+        <div class="slbl">combinazioni<br>stimate</div>
+      </div>
+      <div class="sc s2">
+        <span class="sico">🧭</span>
+        <div class="snum" id="activeCats">1</div>
+        <div class="slbl">categorie<br>attive</div>
+      </div>
+      <div class="sc s3">
+        <span class="sico">🌱</span>
+        <div class="snum" id="extraWordsCount">0</div>
+        <div class="slbl">parole<br>extra</div>
+      </div>
+      <div class="sc s4">
+        <span class="sico">📐</span>
+        <div class="snum" id="templateCount">0</div>
+        <div class="slbl">template<br>attivi</div>
+      </div>
+    </div>
+
+    <!-- Configurazione -->
+    <div class="two-col">
+      <div class="card">
+        <label for="modeSelect">Modalità</label>
+        <select id="modeSelect">
+          <option value="balanced">Bilanciata</option>
+          <option value="practical">Più concreta</option>
+          <option value="wild">Più assurda</option>
+          <option value="sellable">Più vendibile</option>
+        </select>
+        <label for="goalSelect">Obiettivo</label>
+        <select id="goalSelect">
+          <option value="inspiration">Ispirazione</option>
+          <option value="real">Progetto reale</option>
+          <option value="content">Contenuti</option>
+          <option value="money">Monetizzazione</option>
+        </select>
+        <label for="ideaCount">Numero idee</label>
+        <select id="ideaCount">
+          <option value="3">3 idee</option>
+          <option value="5" selected>5 idee</option>
+          <option value="10">10 idee</option>
+          <option value="20">20 idee</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="slabel" style="margin-bottom:10px;">MOTORE</div>
+        <p style="font-size:.68rem;color:var(--dim);line-height:1.65;margin-bottom:14px;">Combina macro-contesto, modalità, obiettivo e librerie per idee nuove con direzione chiara.</p>
+        <button id="generateBtn" class="btn-pri" type="button">⚡ Genera idee</button>
+        <div class="gap-s"></div>
+        <button id="regenAllBtn" class="btn-ghost" type="button" style="width:100%">↺ Rigenera tutto</button>
+        <div class="gap-s"></div>
+        <div class="row">
+          <button id="copyAllBtn"  class="btn-ghost" type="button">⎘ Copia tutte</button>
+          <button id="saveSetBtn"  class="btn-ghost" type="button">💾 Salva set</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Idee generate -->
+    <div class="slabel">IDEE GENERATE</div>
+    <div id="ideasContainer" class="idea-grid"></div>
+  </div>
+</section>
+
+<!-- ══════════════ SCREEN: LIBRERIA / SEEDS ══════════════ -->
+<section id="screen-libreria" class="screen">
+  <div class="tbar">
+    <div class="tbar-left">
+      <button class="tbtn" id="backBtnLib">←</button>
+    </div>
+    <div class="tbar-brand">
+      <div class="tbar-kicker">Blocco 03</div>
+      <div class="tbar-title">Libreria · Seeds</div>
+    </div>
+    <div class="tbar-right">
+      <span class="pill purple">builder</span>
+    </div>
+  </div>
+  <div class="pc">
+    <div class="card" style="margin-bottom:14px;">
+      <div class="row-between" style="margin-bottom:10px;">
+        <span style="font-size:.8rem;font-weight:800;">Builder categoria attiva</span>
+        <span class="pill purple" id="builderCatTag">—</span>
+      </div>
+      <p style="font-size:.65rem;color:var(--dim);line-height:1.65;margin-bottom:12px;">Modifica i mattoni lessicali del macro-contesto selezionato. Una riga = un elemento. Salva quando hai finito.</p>
+      <div class="row">
+        <button id="saveBuilderBtn" class="btn-pri" type="button" style="flex:1;">💾 Salva libreria</button>
+        <button id="fillDemoBuilderBtn" class="btn-ghost" type="button">+ Demo</button>
+      </div>
+    </div>
+
+    <div class="slabel">PAROLE EXTRA PERSONALIZZATE</div>
+    <div class="card" style="margin-bottom:14px;">
+      <textarea id="customWords" placeholder="Una parola o frase per riga — es:
+cyberpunk gentile
+artigianato locale
+AI educativa
+mappe interattive"></textarea>
+    </div>
+
+    <div class="slabel">MATTONI LESSICALI <span class="slabel-badge" id="builderCatLabel">—</span></div>
+    <div id="builderList" class="builder-grid"></div>
+  </div>
+</section>
+
+<!-- ══════════════ SCREEN: ARCHIVIO ══════════════ -->
+<section id="screen-archivio" class="screen">
+  <div class="tbar">
+    <div class="tbar-left">
+      <button class="tbtn" id="backBtnArchivio">←</button>
+    </div>
+    <div class="tbar-brand">
+      <div class="tbar-kicker">Blocco 04</div>
+      <div class="tbar-title">Archivio · Backup</div>
+    </div>
+    <div class="tbar-right">
+      <span class="pill orange">salva</span>
+    </div>
+  </div>
+  <div class="pc">
+    <div class="card" style="margin-bottom:14px;">
+      <div class="row" style="flex-wrap:wrap;">
+        <button id="exportBtn"  class="btn-ghost" type="button">⤓ Esporta JSON</button>
+        <button id="importBtn"  class="btn-ghost" type="button">⤒ Importa JSON</button>
+        <button id="resetBtn"   class="btn-danger" type="button">⚠ Reset libreria</button>
+      </div>
+      <input id="importFile" type="file" accept="application/json" style="display:none;"/>
+    </div>
+
+    <!-- Cartelle virtuali -->
+    <div class="slabel">CARTELLE</div>
+    <div class="folder-row" id="folderRow">
+      <button class="fbtn active" data-folder="all" onclick="setFolder('all')">📋 Tutti</button>
+    </div>
+
+    <div class="slabel">CRONOLOGIA SET</div>
+    <div id="historyContainer"></div>
+  </div>
+</section>
+
+<!-- ══════════════ SCREEN: SETTINGS ══════════════ -->
+<section id="screen-settings" class="screen">
+  <div class="tbar">
+    <div class="tbar-left">
+      <button class="tbtn" id="backBtnSettings">←</button>
+    </div>
+    <div class="tbar-brand">
+      <div class="tbar-kicker">Seed Generator</div>
+      <div class="tbar-title">Impostazioni</div>
+    </div>
+    <div class="tbar-right">
+      <span class="pill">v2</span>
+    </div>
+  </div>
+  <div class="pc">
+    <div class="settings-section">
+      <div class="slabel">DATI</div>
+      <div class="settings-row" onclick="exportLibrary()">
+        <div class="sr-left">
+          <span class="sr-ico">⤓</span>
+          <div>
+            <div class="sr-label">Esporta libreria JSON</div>
+            <div class="sr-sub">Salva libreria e cronologia come file</div>
+          </div>
+        </div>
+        <span class="sr-ar">›</span>
+      </div>
+      <div class="settings-row" id="settingsSaveBtn">
+        <div class="sr-left">
+          <span class="sr-ico">💾</span>
+          <div>
+            <div class="sr-label">Salva set corrente</div>
+            <div class="sr-sub">Aggiunge le idee attuali all'archivio</div>
+          </div>
+        </div>
+        <span class="sr-ar">›</span>
+      </div>
+      <div class="settings-row" id="settingsGoLibraryBtn">
+        <div class="sr-left">
+          <span class="sr-ico">🌱</span>
+          <div>
+            <div class="sr-label">Apri Libreria Seeds</div>
+            <div class="sr-sub">Gestisci i mattoni lessicali</div>
+          </div>
+        </div>
+        <span class="sr-ar">›</span>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="slabel">INFORMAZIONI</div>
+      <div class="card">
+        <p style="font-size:.7rem;color:var(--dim);line-height:1.75;">
+          <strong style="color:var(--txt);">Seed Generator · Generatore Idee</strong> — single-file HTML, zero dipendenze.<br>
+          Stato salvato in localStorage. Esporta JSON per backup portabile.<br><br>
+          Spazio combinatorio stimato moltiplicando intros × soggetti × target × contesti × meccanismi × emozioni × tech × outcome per ogni categoria attiva, × parole extra × template.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAB Laboratorio -->
+<button id="fabGenerate" class="fab" title="Genera idee" aria-label="Genera idee">⚡</button>
+
+<!-- ══════════════ BOTTOM NAV ══════════════ -->
+<nav class="bnav" aria-label="Navigazione principale">
+  <button class="ni active" data-screen="home"       type="button"><span class="ni-icon">🏠</span><span class="ni-label">Home</span></button>
+  <button class="ni"        data-screen="contesti"   type="button"><span class="ni-icon">🧭</span><span class="ni-label">Contesti</span></button>
+  <button class="ni"        data-screen="laboratorio"type="button"><span class="ni-icon">🧪</span><span class="ni-label">Lab</span></button>
+  <button class="ni"        data-screen="libreria"   type="button"><span class="ni-icon">🌱</span><span class="ni-label">Seeds</span></button>
+  <button class="ni"        data-screen="archivio"   type="button"><span class="ni-icon">📦</span><span class="ni-label">Archivio</span></button>
+</nav>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════════
+   SEED GENERATOR — JS invariato + toast system
+   ══════════════════════════════════════════════════ */
+
+const STORAGE_KEY = 'seedgenerator_v1';
+const CATEGORIES  = ['scienza_tecnologia','business_lavoro','apprendimento_formazione','storia_cultura','arte_design','media_contenuti','vita_benessere','societa_futuro'];
+const FIELDS      = ['intros','subjects','target','context','mechanism','emotion','tech','outcome'];
+
+const fieldLabels = {
+  intros:'Introduzioni', subjects:'Soggetti', target:'Target',
+  context:'Contesti', mechanism:'Meccanismi', emotion:'Tono / Emozione',
+  tech:'Tecnologia / Strato tecnico', outcome:'Risultati / Outcome'
+};
+
+const cubes = [
+  { id:'contesti',   num:'01', emoji:'🧭', title:'Contesti',        label:'macro',   sub:'Scegli il mondo da cui nascono le idee.',            foot:'Scienza, Business, Arte e oltre.',      color:'blue'   },
+  { id:'laboratorio',num:'02', emoji:'🧪', title:'Laboratorio',     label:'genera',  sub:'Imposta modalità, obiettivo e quantità.',            foot:'Il motore mescola e genera varianti.',  color:'green'  },
+  { id:'libreria',   num:'03', emoji:'🌱', title:'Libreria · Seeds', label:'builder', sub:'Arricchisci mattoni, mix e parole extra.',           foot:'Fai crescere lo spazio combinatorio.',  color:'purple' },
+  { id:'archivio',   num:'04', emoji:'📦', title:'Archivio · Backup',label:'salva',   sub:'Cronologia, export/import e recupero set.',         foot:'Per non perdere idee lungo la strada.', color:'orange' }
+];
+
+const categoryMeta = {
+  scienza_tecnologia:      { label:'Scienza e Tecnologia',      desc:'Innovazione, strumenti, sistemi, ricerca applicata, app, automazioni, interfacce e idee tech utili o speculative.', example:'Genera idee per tool, esperimenti, dispositivi, piattaforme e flussi tecnici con utilità concreta o visione futura.' },
+  business_lavoro:         { label:'Business e Lavoro',         desc:'Servizi, offerte, modelli ricorrenti, nicchie, processi operativi, produttività e organizzazione del lavoro.', example:'Perfetto per servizi, automazioni, offerte vendibili, processi interni e idee con trazione economica.' },
+  apprendimento_formazione:{ label:'Apprendimento e Formazione',desc:'Didattica, corsi, training, strumenti educativi, metodi di studio, percorsi guidati e divulgazione accessibile.', example:'Idee per imparare meglio, insegnare meglio o rendere una materia più chiara e memorabile.' },
+  storia_cultura:          { label:'Storia e Cultura',          desc:'Narrazione, divulgazione, patrimoni, civiltà, memoria, contesti culturali e interpretazioni vive del passato.', example:'Ottimo per format narrativi, canali culturali, storytelling storico e percorsi di divulgazione.' },
+  arte_design:             { label:'Arte e Design',             desc:'Concept visivi, mostre, identità estetiche, oggetti, installazioni, immaginari e linguaggi creativi.', example:'Qui nascono concept visuali, idee espositive, identità estetiche e progetti ibridi.' },
+  media_contenuti:         { label:'Media e Contenuti',         desc:'Video, podcast, rubriche, canali, social, newsletter, storytelling seriale e contenuti editoriali.', example:'Ideale per format video, podcast, canali e contenuti ripetibili ma non mosci.' },
+  vita_benessere:          { label:'Vita e Benessere',          desc:'Routine, organizzazione personale, abitudini, casa, tempo, piccoli strumenti pratici e supporti quotidiani.', example:'Adatto a strumenti che alleggeriscono la vita reale, senza misticismo da discount.' },
+  societa_futuro:          { label:'Società e Futuro',          desc:'Trend, comunità, cambiamenti sociali, scenari futuri, impatti culturali, etica e visioni collettive.', example:'Qui trovi idee che leggono il cambiamento e provano a costruire scenari o strumenti coerenti.' }
+};
+
+const goalMeta = {
+  inspiration:'con priorità alla varietà e al brainstorming',
+  real:'con attenzione a fattibilità e applicazione concreta',
+  content:'con focus su format, rubriche e contenuti pubblicabili',
+  money:'con focus su utilità percepita e potenziale monetizzabile'
+};
+
+const defaultLibrary = {
+  scienza_tecnologia:{
+    intros:['Un sistema che trasforma','Una piattaforma che organizza','Uno strumento intelligente che semplifica','Un micro-tool che rende utile','Un progetto tecnologico che collega'],
+    subjects:['processi digitali','dati sparsi','workflow tecnici','micro-problemi quotidiani','conoscenza specialistica'],
+    target:['per piccoli team','per freelance tecnici','per utenti curiosi','per professionisti operativi','per persone che vogliono strumenti chiari'],
+    context:['in un ambiente mobile-first','come dashboard semplice','in modo modulare','con flusso guidato','in forma leggera ma scalabile'],
+    mechanism:['con automazioni leggere','tramite interfacce chiare','con feedback immediato','con logica a blocchi','attraverso filtri intelligenti'],
+    emotion:['senza attrito inutile','con eleganza operativa','in modo comprensibile ma potente','con sensazione di controllo','senza rumore tecnico superfluo'],
+    tech:['usando AI dove serve davvero','con salvataggio locale','con esportazione rapida','con architettura modulare','con una struttura estendibile'],
+    outcome:['per rendere la tecnologia più utile e meno opaca.','per risolvere problemi reali senza complicare tutto.','per dare ordine a operazioni tecniche disperse.','per creare strumenti che sembrano chiari al primo colpo.','per trasformare la complessità in qualcosa di usabile.']
+  },
+  business_lavoro:{
+    intros:['Un servizio che organizza','Un business che semplifica','Un modello operativo che rende chiaro','Una proposta commerciale che connette','Un sistema vendibile che traduce'],
+    subjects:['problemi ripetitivi','attività sottovalutate','servizi locali','bisogni professionali ricorrenti','fatica amministrativa diffusa'],
+    target:['per micro-imprese','per professionisti autonomi','per cooperative operative','per negozi e attività locali','per team che vogliono lavorare meglio'],
+    context:['in un formato rapido da capire','come servizio ricorrente','tramite dashboard intuitiva','in forma ibrida tra manuale e automatica','con onboarding leggero'],
+    mechanism:['con pacchetti modulari','con report chiari','con automazioni discrete','con una logica di upsell naturale','attraverso strumenti guidati'],
+    emotion:['senza gergo tossico','con chiarezza brutale','con valore percepito subito','con tono rassicurante ma concreto','senza fronzoli inutili'],
+    tech:['usando no-code e AI leggera','con esportazione PDF','con componenti semplici ma solide','con una base mobile-friendly','con setup facile da replicare'],
+    outcome:['per creare valore vendibile in modo comprensibile.','per ridurre sprechi di tempo e confusione.','per offrire un servizio che si spiega da solo.','per dare struttura a un bisogno reale.','per trasformare un problema banale in una proposta forte.']
+  },
+  apprendimento_formazione:{
+    intros:['Un percorso che rende chiaro','Un format educativo che trasforma','Uno strumento di apprendimento che semplifica','Una piattaforma didattica che organizza','Un metodo formativo che collega'],
+    subjects:['materie difficili','argomenti complessi','percorsi di studio','competenze pratiche','conoscenze frammentate'],
+    target:['per studenti','per autodidatti','per insegnanti pratici','per chi riprende a studiare','per utenti che vogliono capire senza impazzire'],
+    context:['in forma visuale','in piccoli step guidati','come esperienza interattiva','con ritmo leggero ma serio','in moduli semplici da ripetere'],
+    mechanism:['con esempi concreti','con mappe concettuali','con micro-verifiche','tramite spiegazioni progressive','con supporti mnemonici'],
+    emotion:['senza ansia da prestazione','con tono accessibile','con fiducia crescente','con soddisfazione graduale','senza polvere accademica inutile'],
+    tech:['usando elementi interattivi minimi','con materiali esportabili','con contenuti riusabili','con tracciamento leggero','con struttura adattabile'],
+    outcome:['per imparare in modo più chiaro e meno frustrante.','per rendere una materia difficile più digeribile.','per insegnare senza annoiare.','per creare strumenti educativi utili e memorabili.','per trasformare studio e formazione in esperienza più umana.']
+  },
+  storia_cultura:{
+    intros:['Un format culturale che riaccende','Un progetto narrativo che illumina','Una serie divulgativa che racconta','Un laboratorio culturale che collega','Un archivio vivo che trasforma'],
+    subjects:['eventi storici','vite comuni','patrimoni dimenticati','snodi culturali','tracce del passato'],
+    target:['per curiosi colti','per scuole più vive','per canali culturali','per musei e divulgatori','per chi vuole capire il contesto delle cose'],
+    context:['in forma narrativa','con taglio accessibile','in episodi brevi','tramite contenuti seriali','con struttura chiara ma evocativa'],
+    mechanism:['con documenti e ricostruzioni','dal punto di vista umano','con oggetti come narratori','tramite paralleli con il presente','con dettagli marginali che accendono il quadro'],
+    emotion:['senza polvere museale','con curiosità viva','con tono colto ma leggibile','con stupore documentato','con profondità senza pesantezza'],
+    tech:['usando mappe, testi e audio','con esperienze interattive leggere','con contenuti modulari','con piccoli asset visuali','con struttura cross-media'],
+    outcome:['per far sentire il passato più vicino e concreto.','per trasformare la cultura in racconto vivo.','per divulgare senza sembrare una parete di manuale.','per dare spessore a contenuti storici e culturali.','per creare esperienze di conoscenza più memorabili.']
+  },
+  arte_design:{
+    intros:['Un concept che trasforma','Una pratica estetica che mescola','Un progetto visuale che reinterpreta','Una collezione che fonde','Un format espositivo che rende vivo'],
+    subjects:['memorie visive','materiali ordinari','simboli ricorrenti','identità estetiche','tracce emotive'],
+    target:['per creativi indipendenti','per spazi espositivi','per brand culturali','per designer curiosi','per progetti ibridi tra funzione e immaginario'],
+    context:['in chiave surreale','con struttura modulare','in forma installativa','tramite oggetti o immagini','come esperienza immersiva leggera'],
+    mechanism:['con layering visivo','con segni ricorrenti','tramite combinazioni materiche','con una grammatica estetica forte','con narrazione implicita'],
+    emotion:['con stupore silenzioso','con una tensione elegante','con malinconia luminosa','senza bellezza finta','con carattere riconoscibile'],
+    tech:['usando digitale e supporti fisici','con QR attivi','con AI come strato creativo','con interattività minima','con sistemi visuali riusabili'],
+    outcome:['per generare progetti estetici memorabili.','per dare forma visiva a idee forti.','per creare esperienze artistiche leggibili ma non banali.','per fondere funzione e bellezza con più coraggio.','per costruire un immaginario più coerente e distintivo.']
+  },
+  media_contenuti:{
+    intros:['Un format editoriale che organizza','Una serie di contenuti che trasforma','Un canale tematico che collega','Una rubrica che rende leggibile','Un ecosistema contenuti che semplifica'],
+    subjects:['argomenti complessi','micro-storie utili','trend osservabili','format seriali','conoscenza pratica'],
+    target:['per creator','per piccoli media','per canali verticali','per newsletter e podcast','per chi pubblica con continuità'],
+    context:['su video, audio e testo','come rubrica ricorrente','in episodi brevi','con logica seriale','in formato adattabile ai social'],
+    mechanism:['con ganci narrativi forti','con struttura a episodi','con frizione minima per la produzione','con format replicabile','tramite mix di informazione e carattere'],
+    emotion:['con ritmo chiaro','con tono leggibile','con identità riconoscibile','senza sembrare contenuto copia-incolla','con energia editoriale'],
+    tech:['usando workflow semplici','con archivio interno','con template di produzione','con riuso intelligente dei contenuti','con pubblicazione multi-canale'],
+    outcome:['per creare contenuti più forti e coerenti.','per pubblicare con meno fatica e più direzione.','per trovare format che possono durare nel tempo.','per costruire una linea editoriale riconoscibile.','per trasformare idee sparse in contenuti pubblicabili.']
+  },
+  vita_benessere:{
+    intros:['Un supporto che migliora','Un sistema leggero che organizza','Uno strumento quotidiano che rende chiaro','Un percorso semplice che accompagna','Un format utile che alleggerisce'],
+    subjects:['routine personali','abitudini fragili','gestione del tempo','benessere leggero','organizzazione di casa e vita'],
+    target:['per persone piene di impegni','per famiglie','per chi si sente disperso','per chi vuole più equilibrio','per utenti che cercano cose utili e non mistiche'],
+    context:['nella vita quotidiana','in piccoli gesti ripetuti','come rituale semplice','in momenti di caos','come sostegno pratico continuo'],
+    mechanism:['con micro-step','con promemoria gentili','con visualizzazioni facili','tramite piccoli rituali','con supporti quotidiani'],
+    emotion:['senza pressione tossica','con calma operativa','con leggerezza concreta','senza moralismi','con sensazione di sollievo'],
+    tech:['usando strumenti minimi','con tracciamento leggero','con approccio mobile-first','con supporti stampabili o digitali','con setup facilissimo'],
+    outcome:['per stare meglio senza complicarsi la vita.','per migliorare abitudini reali con poco attrito.','per creare strumenti quotidiani davvero utili.','per alleggerire la gestione personale.','per rendere più praticabile un po\' di benessere.']
+  },
+  societa_futuro:{
+    intros:['Un progetto che osserva','Un laboratorio di idee che interpreta','Un format che esplora','Una piattaforma che collega','Un sistema concettuale che rilegge'],
+    subjects:['trasformazioni sociali','scenari futuri','cambiamenti culturali','nuove abitudini collettive','nodi etici emergenti'],
+    target:['per community attente','per osservatori culturali','per creator riflessivi','per progetti civici','per chi vuole leggere il cambiamento'],
+    context:['in forma divulgativa','come osservatorio tematico','tramite rubriche periodiche','con taglio accessibile','in modalità partecipativa'],
+    mechanism:['con analisi trasversali','con casi concreti','tramite scenari comparati','con mappe di impatto','con domande guida'],
+    emotion:['senza apocalisse da discount','con lucidità curiosa','con senso critico leggibile','con apertura mentale','senza fumo futurista inutile'],
+    tech:['usando report leggeri','con contenuti ibridi','con raccolta di segnali deboli','con dashboard interpretative','con strumenti collaborativi'],
+    outcome:['per capire meglio il mondo che cambia.','per trasformare temi sociali in progetti leggibili.','per costruire contenuti e strumenti sul futuro senza fuffa.','per generare riflessioni utili e applicabili.','per leggere la realtà con più ampiezza e meno nebbia.']
+  }
+};
+
+const templates = {
+  balanced:[
+    ({intro,subject,target,context,mechanism,emotion,tech,outcome,extra,goal})=>`${intro} ${subject} ${target}, ${context}, ${mechanism}${extra}, ${emotion}, ${tech}, ${goal}, ${outcome}`,
+    ({intro,subject,target,context,mechanism,emotion,tech,outcome,extra,goal})=>`${intro} ${subject} ${context}${extra}, pensato ${target}, ${mechanism}, ${emotion}, ${tech}, ${goal}, ${outcome}`
+  ],
+  practical:[
+    ({intro,subject,target,context,mechanism,tech,outcome,extra,goal})=>`${intro} ${subject} ${target}, ${context}, ${mechanism}${extra}, ${tech}, ${goal}, con attenzione alla fattibilità, ${outcome}`,
+    ({intro,subject,target,mechanism,tech,outcome,extra,goal})=>`${intro} ${subject} per un uso pratico ${target}, ${mechanism}, ${tech}${extra}, ${goal}, ${outcome}`
+  ],
+  wild:[
+    ({intro,subject,target,context,mechanism,emotion,tech,outcome,extra,goal})=>`${intro} ${subject} ${target}, ${context}, ${mechanism}${extra}, con deriva visionaria, ${emotion}, ${tech}, ${goal}, ${outcome}`,
+    ({intro,subject,mechanism,emotion,tech,outcome,extra,goal})=>`${intro} ${subject}, ${mechanism}${extra}, ${emotion}, con logica imprevedibile ma coerente, ${tech}, ${goal}, ${outcome}`
+  ],
+  sellable:[
+    ({intro,subject,target,context,mechanism,tech,outcome,extra,goal})=>`${intro} ${subject} ${target}, ${context}, ${mechanism}${extra}, ${tech}, ${goal}, facile da spiegare e vendere, ${outcome}`,
+    ({intro,subject,target,mechanism,tech,outcome,extra,goal})=>`${intro} ${subject} pensato ${target}, ${mechanism}${extra}, ${tech}, ${goal}, con vantaggio percepibile in pochi secondi, ${outcome}`
+  ]
+};
+
+/* ── STATE ─────────────────────────────────────────── */
+const state = {
+  currentScreen:'home',
+  category:'scienza_tecnologia',
+  ideaCount:5,
+  mode:'balanced',
+  goal:'inspiration',
+  customWords:'',
+  mixCategories:['scienza_tecnologia'],
+  ideas:[],
+  history:[],
+  library:JSON.parse(JSON.stringify(defaultLibrary))
+};
+
+/* ── CATEGORY → CSS CLASS MAP ────────────────────────── */
+const catClass = {
+  scienza_tecnologia:'icat-sci',
+  business_lavoro:'icat-biz',
+  apprendimento_formazione:'icat-app',
+  storia_cultura:'icat-sto',
+  arte_design:'icat-art',
+  media_contenuti:'icat-med',
+  vita_benessere:'icat-vit',
+  societa_futuro:'icat-soc'
+};
+
+/* ── ELEMENT REFS ───────────────────────────────────── */
+const el = {
+  cubeGrid:          document.getElementById('cubeGrid'),
+  macroGrid:         document.getElementById('macroGrid'),
+  previewTitle:      document.getElementById('previewTitle'),
+  previewDesc:       document.getElementById('previewDesc'),
+  previewExample:    document.getElementById('previewExample'),
+  modeSelect:        document.getElementById('modeSelect'),
+  goalSelect:        document.getElementById('goalSelect'),
+  ideaCount:         document.getElementById('ideaCount'),
+  customWords:       document.getElementById('customWords'),
+  mixChips:          document.getElementById('mixChips'),
+  quickSettingsBtn:  document.getElementById('quickSettingsBtn'),
+  quickExportBtn:    document.getElementById('quickExportBtn'),
+  quickSaveBtn:      document.getElementById('quickSaveBtn'),
+  generateBtn:       document.getElementById('generateBtn'),
+  regenAllBtn:       document.getElementById('regenAllBtn'),
+  copyAllBtn:        document.getElementById('copyAllBtn'),
+  fillDemoBuilderBtn:document.getElementById('fillDemoBuilderBtn'),
+  saveBuilderBtn:    document.getElementById('saveBuilderBtn'),
+  builderCatTag:     document.getElementById('builderCatTag'),
+  builderCatLabel:   document.getElementById('builderCatLabel'),
+  builderList:       document.getElementById('builderList'),
+  saveSetBtn:        document.getElementById('saveSetBtn'),
+  exportBtn:         document.getElementById('exportBtn'),
+  importBtn:         document.getElementById('importBtn'),
+  resetBtn:          document.getElementById('resetBtn'),
+  importFile:        document.getElementById('importFile'),
+  historyContainer:  document.getElementById('historyContainer'),
+  ideasContainer:    document.getElementById('ideasContainer'),
+  comboCount:        document.getElementById('comboCount'),
+  activeCats:        document.getElementById('activeCats'),
+  extraWordsCount:   document.getElementById('extraWordsCount'),
+  templateCount:     document.getElementById('templateCount'),
+  navItems:          Array.from(document.querySelectorAll('.ni')),
+  screens:{
+    home:        document.getElementById('screen-home'),
+    settings:    document.getElementById('screen-settings'),
+    contesti:    document.getElementById('screen-contesti'),
+    laboratorio: document.getElementById('screen-laboratorio'),
+    libreria:    document.getElementById('screen-libreria'),
+    archivio:    document.getElementById('screen-archivio')
+  },
+  settingsSaveBtn:       document.getElementById('settingsSaveBtn'),
+  settingsGoLibraryBtn:  document.getElementById('settingsGoLibraryBtn'),
+  folderRow:             document.getElementById('folderRow'),
+  fabGenerate:           document.getElementById('fabGenerate'),
+  homeStats:             document.getElementById('homeStats'),
+  homeRecenti:           document.getElementById('homeRecenti'),
+  recentScroll:          document.getElementById('recentScroll'),
+  recentiCount:          document.getElementById('recentiCount')
+};
+
+/* ── TOAST ──────────────────────────────────────────── */
+let toastTimer = null;
+function toast(msg, type=''){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type ? `show ${type}` : 'show';
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.className=''; }, 2800);
+}
+// backward-compat alias
+function setStatus(text, type=''){
+  const map = { ok:'ok', warn:'warn', danger:'err', '':'', undefined:'' };
+  toast(text, map[type] || '');
+}
+
+/* ── UTILS ──────────────────────────────────────────── */
+function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+function randomItem(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+function normalizeLibrary(library){
+  const merged = deepClone(defaultLibrary);
+  CATEGORIES.forEach(cat=>{
+    if(!library[cat]) return;
+    FIELDS.forEach(field=>{
+      if(Array.isArray(library[cat][field]) && library[cat][field].length)
+        merged[cat][field] = library[cat][field].map(v=>String(v).trim()).filter(Boolean);
+    });
+  });
+  return merged;
+}
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const parsed = JSON.parse(raw);
+    if(!parsed || typeof parsed!=='object') return;
+    Object.assign(state,{
+      currentScreen: parsed.currentScreen||'home',
+      category:      parsed.category||state.category,
+      ideaCount:     Number(parsed.ideaCount)||5,
+      mode:          parsed.mode||'balanced',
+      goal:          parsed.goal||'inspiration',
+      customWords:   parsed.customWords||'',
+      mixCategories: Array.isArray(parsed.mixCategories)&&parsed.mixCategories.length ? parsed.mixCategories : [state.category],
+      ideas:         Array.isArray(parsed.ideas)   ? parsed.ideas   : [],
+      history:       Array.isArray(parsed.history) ? parsed.history : []
+    });
+    if(parsed.library && typeof parsed.library==='object')
+      state.library = normalizeLibrary(parsed.library);
+  } catch(err){ console.warn('Errore caricamento stato:', err); }
+}
+
+function ensurePrimaryCategoryIncluded(){
+  if(!state.mixCategories.includes(state.category))
+    state.mixCategories = [state.category, ...state.mixCategories].slice(0, CATEGORIES.length);
+}
+
+function parseCustomWords(){ return state.customWords.split('\n').map(v=>v.trim()).filter(Boolean); }
+
+/* ── NAVIGATION ─────────────────────────────────────── */
+function navigate(screen){
+  if(!el.screens[screen]) return;
+  state.currentScreen = screen;
+  saveState();
+  renderScreens();
+}
+
+function renderScreens(){
+  Object.entries(el.screens).forEach(([key,node])=>{
+    node.classList.toggle('active', key===state.currentScreen);
+  });
+  el.navItems.forEach(btn=>btn.classList.toggle('active', btn.dataset.screen===state.currentScreen));
+  // FAB: visibile solo nel Laboratorio
+  el.fabGenerate.classList.toggle('visible', state.currentScreen==='laboratorio');
+}
+
+/* ── RENDER FUNCTIONS ───────────────────────────────── */
+function renderCubes(){
+  el.cubeGrid.innerHTML = cubes.map(c=>`
+    <article class="cube" data-cube="${c.id}" data-c="${c.color}" role="button" tabindex="0" aria-label="${c.title}">
+      <div class="cube-num">${c.num} · ${c.label}</div>
+      <div class="cube-emoji">${c.emoji}</div>
+      <div class="cube-title">${c.title}</div>
+      <div class="cube-sub">${c.sub}</div>
+      <div class="cube-foot">${c.foot}</div>
+    </article>
+  `).join('');
+}
+
+function renderMacroGrid(){
+  el.macroGrid.innerHTML = CATEGORIES.map(cat=>`
+    <div class="macro-card${state.category===cat?' active':''}" data-cat="${cat}">
+      <div class="macro-title">${categoryMeta[cat].label}</div>
+      <div class="macro-desc">${categoryMeta[cat].desc}</div>
+    </div>
+  `).join('');
+}
+
+function renderPreview(){
+  const meta = categoryMeta[state.category];
+  el.previewTitle.textContent   = meta.label;
+  el.previewDesc.textContent    = meta.desc;
+  el.previewExample.innerHTML   = `<strong>Direzione:</strong><br>${escapeHtml(meta.example)}`;
+}
+
+function renderMixChips(){
+  el.mixChips.innerHTML = CATEGORIES.map(cat=>`
+    <button type="button" class="chip${state.mixCategories.includes(cat)?' active':''}" data-cat="${cat}">${categoryMeta[cat].label}</button>
+  `).join('');
+}
+
+function renderBuilder(){
+  const categoryData = state.library[state.category];
+  el.builderCatTag.textContent   = categoryMeta[state.category].label;
+  el.builderCatLabel.textContent = categoryMeta[state.category].label;
+  el.builderList.innerHTML = FIELDS.map(field=>`
+    <div class="builder-card">
+      <div class="builder-head">
+        <span class="builder-title">${fieldLabels[field]}</span>
+        <span class="pill">${categoryData[field].length} el.</span>
+      </div>
+      <textarea data-field="${field}">${escapeHtml(categoryData[field].join('\n'))}</textarea>
+    </div>
+  `).join('');
+}
+
+function updateBuilderStateFromUI(){
+  const categoryData = state.library[state.category];
+  el.builderList.querySelectorAll('textarea[data-field]').forEach(ta=>{
+    const field  = ta.dataset.field;
+    const values = ta.value.split('\n').map(v=>v.trim()).filter(Boolean);
+    categoryData[field] = values.length ? values : [...defaultLibrary[state.category][field]];
+  });
+}
+
+/* ── IDEA ENGINE ────────────────────────────────────── */
+function getParts(category){
+  const pool = state.library[category];
+  return {
+    intro:pool.intros[Math.floor(Math.random()*pool.intros.length)],
+    subject:pool.subjects[Math.floor(Math.random()*pool.subjects.length)],
+    target:pool.target[Math.floor(Math.random()*pool.target.length)],
+    context:pool.context[Math.floor(Math.random()*pool.context.length)],
+    mechanism:pool.mechanism[Math.floor(Math.random()*pool.mechanism.length)],
+    emotion:pool.emotion[Math.floor(Math.random()*pool.emotion.length)],
+    tech:pool.tech[Math.floor(Math.random()*pool.tech.length)],
+    outcome:pool.outcome[Math.floor(Math.random()*pool.outcome.length)]
+  };
+}
+
+function buildIdea(){
+  const category   = randomItem(state.mixCategories.length ? state.mixCategories : [state.category]);
+  const parts      = getParts(category);
+  const customWords= parseCustomWords();
+  const extra      = customWords.length && Math.random()>0.35 ? ` con un tocco di ${randomItem(customWords)}` : '';
+  const template   = randomItem(templates[state.mode]);
+  const goal       = goalMeta[state.goal];
+  const text       = template({...parts, extra, goal}).replace(/\s+/g,' ').replace(/ ,/g,',').trim();
+  return { text, category, mode:state.mode, goal:state.goal };
+}
+
+function generateIdeas(count){
+  const out=[]; const seen=new Set(); let guard=0;
+  while(out.length<count && guard<count*140){
+    const idea=buildIdea();
+    if(!seen.has(idea.text)){ seen.add(idea.text); out.push(idea); }
+    guard++;
+  }
+  return out;
+}
+
+function estimateCombinations(){
+  const cats = state.mixCategories.length ? state.mixCategories : [state.category];
+  let total=0;
+  cats.forEach(cat=>{
+    const p=state.library[cat];
+    total+=p.intros.length*p.subjects.length*p.target.length*p.context.length*p.mechanism.length*p.emotion.length*p.tech.length*p.outcome.length;
+  });
+  return total*Math.max(1, parseCustomWords().length+1)*templates[state.mode].length;
+}
+function formatBigNumber(n){ return n.toLocaleString('it-IT'); }
+
+/* ── RENDER: STATS ──────────────────────────────────── */
+function renderStats(){
+  el.comboCount.textContent     = formatBigNumber(estimateCombinations());
+  el.activeCats.textContent     = String(state.mixCategories.length||1);
+  el.extraWordsCount.textContent= String(parseCustomWords().length);
+  el.templateCount.textContent  = String(templates[state.mode].length);
+}
+
+/* ── RENDER: IDEE ───────────────────────────────────── */
+function renderIdeas(){
+  if(!state.ideas.length){
+    el.ideasContainer.innerHTML=`
+      <div class="empty">
+        <div class="empty-ic">💡</div>
+        <div class="empty-t">Nessuna idea generata</div>
+        <div class="empty-s">Vai nel Laboratorio, configura modalità e obiettivo, poi premi Genera idee.</div>
+      </div>`;
+    return;
+  }
+  el.ideasContainer.innerHTML = state.ideas.map((idea, index)=>{
+    const cc = catClass[idea.category] || 'icat-sci';
+    return `
+    <article class="idea-card ${cc}">
+      <div class="idea-top">
+        <div class="idea-num">${index+1}</div>
+        <div class="idea-tag">${escapeHtml(categoryMeta[idea.category].label)} · ${escapeHtml(idea.mode)}</div>
+      </div>
+      <p class="idea-text">${escapeHtml(idea.text)}</p>
+      <div class="idea-meta">Categoria: ${escapeHtml(categoryMeta[idea.category].label)} · Obiettivo: ${escapeHtml(idea.goal)}</div>
+      <div class="card-actions">
+        <button class="btn-ghost" onclick="copyIdea(${index})">⎘ Copia</button>
+        <button class="btn-ghost" onclick="regenerateIdea(${index})">↺ Rigenera</button>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+/* ── RENDER: HISTORY + FOLDERS ──────────────────────── */
+let _activeFolder = 'all';
+window.setFolder = function(f){
+  _activeFolder = f;
+  renderHistory();
+  // update folder buttons
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.toggle('active', b.dataset.folder===f));
+};
+
+function renderFolderRow(){
+  // Raccoglie tutte le modalità usate come "cartelle"
+  const modes = [...new Set(state.history.map(h=>h.mode))];
+  const goals  = [...new Set(state.history.map(h=>h.goal))];
+  let html = `<button class="fbtn${_activeFolder==='all'?' active':''}" data-folder="all" onclick="setFolder('all')">📋 Tutti (${state.history.length})</button>`;
+  modes.forEach(m=>{
+    const count = state.history.filter(h=>h.mode===m).length;
+    html += `<button class="fbtn${_activeFolder===m?' active':''}" data-folder="${m}" onclick="setFolder('${m}')">🗂 ${m} (${count})</button>`;
+  });
+  el.folderRow.innerHTML = html;
+}
+
+function renderHistory(){
+  renderFolderRow();
+  const list = _activeFolder==='all' ? state.history : state.history.filter(h=>h.mode===_activeFolder);
+  if(!list.length){
+    el.historyContainer.innerHTML=`
+      <div class="empty">
+        <div class="empty-ic">📦</div>
+        <div class="empty-t">Nessun set salvato</div>
+        <div class="empty-s">Quando trovi un buon set nel Laboratorio, premi "Salva set" per archiviarlo qui.</div>
+      </div>`;
+    return;
+  }
+  el.historyContainer.innerHTML = list.map(item=>`
+    <div class="history-item">
+      <div>
+        <span class="history-badge">${escapeHtml(item.mode)}</span>
+        <span class="history-badge" style="background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.2);color:var(--c1);">${escapeHtml(item.goal)}</span>
+      </div>
+      <div class="history-meta">${escapeHtml(item.date)} · ${escapeHtml(item.categories.join(', '))}</div>
+      <div class="history-text">${escapeHtml(item.ideas.map((v,i)=>`${i+1}. ${v}`).join('\n\n'))}</div>
+    </div>
+  `).join('');
+}
+
+function syncInputsFromState(){
+  el.modeSelect.value  = state.mode;
+  el.goalSelect.value  = state.goal;
+  el.ideaCount.value   = String(state.ideaCount);
+  el.customWords.value = state.customWords;
+}
+
+/* ── SPUNTO CASUALE ─────────────────────────────────── */
+const MODES = ['balanced','practical','wild','sellable'];
+const GOALS = ['inspiration','real','content','money'];
+
+function buildRandomIdea(){
+  const cat  = randomItem(CATEGORIES);
+  const mode = randomItem(MODES);
+  const goal = randomItem(GOALS);
+  const parts = getParts(cat);
+  const customWords = parseCustomWords();
+  const extra = customWords.length && Math.random() > 0.5 ? ` con un tocco di ${randomItem(customWords)}` : '';
+  const template = randomItem(templates[mode]);
+  const text = template({...parts, extra, goal: goalMeta[goal]}).replace(/\s+/g,' ').replace(/ ,/g,',').trim();
+  return { text, category:cat, mode, goal };
+}
+
+function renderSparkResults(ideas){
+  const container = document.getElementById('sparkResults');
+  const modeEmoji = { balanced:'⚖️', practical:'🔧', wild:'🌀', sellable:'💰' };
+  container.innerHTML = ideas.map((idea, i) => {
+    const cc = catClass[idea.category] || 'icat-sci';
+    return `
+    <div class="spark-result-card ${cc}">
+      <div class="spark-result-num">Spunto ${i+1}</div>
+      <div class="spark-result-cat">
+        ${modeEmoji[idea.mode]} ${escapeHtml(idea.mode)} &nbsp;·&nbsp;
+        🧭 ${escapeHtml(categoryMeta[idea.category].label)}
+      </div>
+      <div class="spark-result-text">${escapeHtml(idea.text)}</div>
+      <div class="spark-result-actions">
+        <button class="btn-ghost" style="font-size:.65rem;padding:7px 11px;" onclick="copySparkIdea(${i})">⎘ Copia</button>
+        <button class="btn-ghost" style="font-size:.65rem;padding:7px 11px;" onclick="sendSparkToLab(${i})">▶ Porta in Lab</button>
+      </div>
+    </div>`;
+  }).join('');
+  container.classList.add('visible');
+}
+
+let _sparkIdeas = [];
+
+window.copySparkIdea = function(i){
+  if(_sparkIdeas[i]) copyText(_sparkIdeas[i].text);
+};
+
+window.sendSparkToLab = function(i){
+  if(!_sparkIdeas[i]) return;
+  const idea = _sparkIdeas[i];
+  // Imposta stato con la singola idea e naviga al lab
+  state.ideas = [idea];
+  state.mode  = idea.mode;
+  state.goal  = idea.goal;
+  saveState();
+  syncInputsFromState();
+  renderIdeas();
+  renderStats();
+  navigate('laboratorio');
+  toast(`Spunto portato nel Laboratorio. Genera altri per espanderlo.`, 'ok');
+};
+
+function animateSpark(){
+  const btn = document.getElementById('sparkBtn');
+  const ico = document.getElementById('sparkIco');
+  const results = document.getElementById('sparkResults');
+
+  btn.disabled = true;
+  ico.classList.add('spinning');
+  results.classList.remove('visible');
+
+  setTimeout(()=>{
+    _sparkIdeas = [buildRandomIdea(), buildRandomIdea(), buildRandomIdea()];
+    renderSparkResults(_sparkIdeas);
+    ico.classList.remove('spinning');
+    ico.textContent = '✨';
+    btn.disabled = false;
+    // Ripristina emoji dopo un po'
+    setTimeout(()=>{ ico.textContent = '🎲'; }, 2500);
+  }, 380);
+}
+
+/* ── RENDER: HOME STATS ─────────────────────────────── */
+function renderHomeStats(){
+  const totalIdeas = state.history.reduce((sum,h)=> sum + (h.ideas ? h.ideas.length : 0), 0);
+  const sets = state.history.length;
+  const cats = state.mixCategories.length;
+  const activeCat = categoryMeta[state.category] ? categoryMeta[state.category].label : '—';
+
+  if(totalIdeas === 0 && sets === 0){
+    el.homeStats.style.display = 'none';
+    return;
+  }
+  el.homeStats.style.display = 'flex';
+  el.homeStats.innerHTML = `
+    <span>🧪 <strong>${totalIdeas}</strong> idee generate</span>
+    <span class="dot">·</span>
+    <span>💾 <strong>${sets}</strong> set salvati</span>
+    <span class="dot">·</span>
+    <span>🧭 <strong>${cats}</strong> ${cats === 1 ? 'categoria' : 'categorie'} attive</span>
+    <span class="dot">·</span>
+    <span style="color:var(--c3);">● ${activeCat}</span>
+  `;
+}
+
+/* ── RENDER: HOME RECENTI ───────────────────────────── */
+const rcColors = ['rc1','rc2','rc3','rc4'];
+
+function resumeSet(index){
+  const item = state.history[index];
+  if(!item) return;
+  // Ricarica le idee nel laboratorio partendo dai testi salvati
+  state.ideas = item.ideas.map(text => ({
+    text: text.replace(/^\[[^\]]+\]\s*/, ''),
+    category: state.category,
+    mode: item.mode,
+    goal: item.goal
+  }));
+  state.mode = item.mode;
+  state.goal = item.goal;
+  saveState();
+  navigate('laboratorio');
+  toast(`Set "${item.mode} · ${item.goal}" ricaricato nel Laboratorio.`, 'ok');
+}
+window.resumeSet = resumeSet;
+
+function renderRecenti(){
+  const max = 4;
+  const recent = state.history.slice(0, max);
+
+  if(!recent.length){
+    el.homeRecenti.style.display = 'none';
+    return;
+  }
+
+  el.homeRecenti.style.display = 'block';
+  el.recentiCount.textContent = state.history.length;
+
+  el.recentScroll.innerHTML = recent.map((item, i) => {
+    const colorClass = rcColors[i % rcColors.length];
+    const modeClass  = `mode-${item.mode}`;
+    const goalLabel  = { inspiration:'ispirazione', real:'progetto', content:'contenuti', money:'monetizza' }[item.goal] || item.goal;
+    const firstIdea  = item.ideas && item.ideas[0] ? item.ideas[0].replace(/^\[[^\]]+\]\s*/, '') : '—';
+    const catStr     = item.categories ? item.categories.slice(0,2).join(', ') + (item.categories.length > 2 ? '…' : '') : '—';
+
+    return `
+      <div class="rcard ${colorClass}" onclick="resumeSet(${i})">
+        <div class="rcard-badges">
+          <span class="rcard-badge ${modeClass}">${item.mode}</span>
+          <span class="rcard-badge goal">${goalLabel}</span>
+        </div>
+        <div class="rcard-preview">${escapeHtml(firstIdea)}</div>
+        <div class="rcard-meta">📅 ${escapeHtml(item.date)}<br>🧭 ${escapeHtml(catStr)} · ${item.ideas ? item.ideas.length : 0} idee</div>
+        <button class="rcard-action" onclick="event.stopPropagation();resumeSet(${i})">
+          ▶ Riprendi nel Lab
+        </button>
+      </div>`;
+  }).join('');
+}
+
+function render(){
+  syncInputsFromState();
+  renderScreens();
+  renderCubes();
+  renderHomeStats();
+  renderRecenti();
+  renderMacroGrid();
+  renderPreview();
+  renderMixChips();
+  renderBuilder();
+  renderStats();
+  renderIdeas();
+  renderHistory();
+}
+
+function updateMainStateFromInputs(){
+  state.mode        = el.modeSelect.value;
+  state.goal        = el.goalSelect.value;
+  state.ideaCount   = Number(el.ideaCount.value);
+  state.customWords = el.customWords.value.trim();
+  ensurePrimaryCategoryIncluded();
+  saveState();
+  renderStats();
+}
+
+/* ── GENERATE ───────────────────────────────────────── */
+function animateGenerate(){
+  updateMainStateFromInputs();
+  el.generateBtn.classList.add('loading');
+  el.generateBtn.disabled = true;
+  el.generateBtn.textContent = '⏳ Genero...';
+  toast('Sto combinando contesti, template e semi lessicali...','warn');
+  setTimeout(()=>{
+    state.ideas = generateIdeas(state.ideaCount);
+    saveState();
+    renderIdeas();
+    renderStats();
+    navigate('laboratorio');
+    el.generateBtn.classList.remove('loading');
+    el.generateBtn.disabled = false;
+    el.generateBtn.innerHTML = '⚡ Genera idee';
+    toast(`Generate ${state.ideas.length} idee. Combinazioni: ${formatBigNumber(estimateCombinations())}.`,'ok');
+  }, 520);
+}
+
+/* ── COPY / REGEN ───────────────────────────────────── */
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    toast('Copiato negli appunti.','ok');
+  } catch {
+    toast('Clipboard non disponibile.','err');
+  }
+}
+
+window.copyIdea = function(index){
+  const idea = state.ideas[index];
+  if(idea) copyText(idea.text);
+};
+
+window.regenerateIdea = function(index){
+  state.ideas[index] = buildIdea();
+  saveState(); renderIdeas();
+  toast(`Idea ${index+1} rigenerata.`,'ok');
+};
+
+function copyAllIdeas(){
+  if(!state.ideas.length) return toast('Prima genera qualche idea.','warn');
+  const text = state.ideas.map((idea,i)=>`${i+1}. [${categoryMeta[idea.category].label}] ${idea.text}`).join('\n\n');
+  copyText(text);
+}
+
+/* ── SAVE / EXPORT / IMPORT ─────────────────────────── */
+function saveCurrentSet(){
+  if(!state.ideas.length) return toast('Non c\'è nessun set da salvare.','warn');
+  state.history.unshift({
+    date:       new Date().toLocaleString('it-IT'),
+    mode:       state.mode,
+    goal:       state.goal,
+    categories: state.mixCategories.map(c=>categoryMeta[c].label),
+    ideas:      state.ideas.map(i=>`[${categoryMeta[i.category].label}] ${i.text}`)
+  });
+  state.history = state.history.slice(0,12);
+  saveState(); renderHistory(); renderRecenti(); renderHomeStats();
+  toast('Set salvato in archivio.','ok');
+}
+
+function saveBuilderCategory(){
+  updateBuilderStateFromUI();
+  saveState(); renderBuilder(); renderStats();
+  toast(`Libreria di ${categoryMeta[state.category].label} salvata.`,'ok');
+}
+
+function fillDemoBuilder(){
+  const demo = {
+    intros:   ['Un motore concettuale che riassembla','Una macchina leggera che orchestra'],
+    subjects: ['idee latenti','bisogni trasversali'],
+    target:   ['per utenti che vogliono direzione','per piccoli team che cercano differenziazione'],
+    context:  ['come esperienza progressiva','in forma ultra leggibile'],
+    mechanism:['con filtri combinatori intelligenti','tramite modularità espandibile'],
+    emotion:  ['senza sembrare il solito bot di cartone','con una certa eleganza operativa'],
+    tech:     ['con libreria editabile da interfaccia','con export/import strutturato'],
+    outcome:  ['per aumentare varietà e controllo creativo.','per costruire una vera fabbrica di idee riusabile.']
+  };
+  FIELDS.forEach(field=>{
+    const current = new Set(state.library[state.category][field]);
+    demo[field].forEach(item=>current.add(item));
+    state.library[state.category][field] = [...current];
+  });
+  saveState(); render();
+  toast(`Demo aggiunti a ${categoryMeta[state.category].label}.`,'ok');
+}
+
+function exportLibrary(){
+  const blob = new Blob([JSON.stringify({library:state.library,history:state.history},null,2)],{type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download='seed-generator-library.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast('JSON esportato.','ok');
+}
+
+function importLibraryFromFile(file){
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(parsed.library) state.library = normalizeLibrary(parsed.library);
+      if(Array.isArray(parsed.history)) state.history = parsed.history;
+      saveState(); render();
+      toast('JSON importato correttamente.','ok');
+    } catch { toast('File JSON non valido.','err'); }
+  };
+  reader.readAsText(file);
+}
+
+function resetLibrary(){
+  if(!confirm('Vuoi davvero resettare la libreria ai valori base? La cronologia verrà persa.')) return;
+  state.library = deepClone(defaultLibrary);
+  state.history = []; state.ideas = [];
+  saveState();
+  state.ideas = generateIdeas(state.ideaCount);
+  saveState(); render();
+  toast('Libreria resettata ai valori base.','ok');
+}
+
+/* ── EVENT LISTENERS ────────────────────────────────── */
+el.cubeGrid.addEventListener('click', e=>{
+  const cube = e.target.closest('[data-cube]');
+  if(cube) navigate(cube.dataset.cube);
+});
+el.cubeGrid.addEventListener('keydown', e=>{
+  if(e.key==='Enter'||e.key===' '){ const cube=e.target.closest('[data-cube]'); if(cube) navigate(cube.dataset.cube); }
+});
+
+el.macroGrid.addEventListener('click', e=>{
+  const card = e.target.closest('[data-cat]');
+  if(!card) return;
+  state.category = card.dataset.cat;
+  ensurePrimaryCategoryIncluded();
+  saveState();
+  renderMacroGrid(); renderPreview(); renderMixChips(); renderBuilder(); renderStats();
+});
+
+el.mixChips.addEventListener('click', e=>{
+  const btn = e.target.closest('[data-cat]');
+  if(!btn) return;
+  const cat = btn.dataset.cat;
+  if(state.mixCategories.includes(cat)){
+    if(state.mixCategories.length===1) return toast('Deve restare almeno un macro-contesto attivo.','warn');
+    state.mixCategories = state.mixCategories.filter(c=>c!==cat);
+  } else {
+    state.mixCategories.push(cat);
+  }
+  if(!state.mixCategories.includes(state.category)) state.category = cat;
+  saveState();
+  renderMixChips(); renderMacroGrid(); renderPreview(); renderStats();
+});
+
+el.modeSelect.addEventListener('change', updateMainStateFromInputs);
+el.goalSelect.addEventListener('change', updateMainStateFromInputs);
+el.ideaCount.addEventListener('change',  updateMainStateFromInputs);
+el.customWords.addEventListener('input',  updateMainStateFromInputs);
+
+// Back buttons
+['backBtnContesti','backBtnLab','backBtnLib','backBtnArchivio','backBtnSettings'].forEach(id=>{
+  const btn = document.getElementById(id);
+  if(btn) btn.addEventListener('click', ()=>navigate('home'));
+});
+
+el.quickSettingsBtn.addEventListener('click', ()=>navigate('settings'));
+el.quickExportBtn.addEventListener('click',   exportLibrary);
+el.quickSaveBtn.addEventListener('click',     saveCurrentSet);
+
+el.navItems.forEach(btn=>btn.addEventListener('click', ()=>navigate(btn.dataset.screen)));
+
+el.generateBtn.addEventListener('click',        animateGenerate);
+el.fabGenerate.addEventListener('click',        animateGenerate);
+el.regenAllBtn.addEventListener('click',        animateGenerate);
+document.getElementById('sparkBtn').addEventListener('click', animateSpark);
+el.copyAllBtn.addEventListener('click',         copyAllIdeas);
+el.fillDemoBuilderBtn.addEventListener('click', fillDemoBuilder);
+el.saveBuilderBtn.addEventListener('click',     saveBuilderCategory);
+el.saveSetBtn.addEventListener('click',         saveCurrentSet);
+el.exportBtn.addEventListener('click',          exportLibrary);
+el.importBtn.addEventListener('click',          ()=>el.importFile.click());
+el.importFile.addEventListener('change', e=>{ if(e.target.files[0]) importLibraryFromFile(e.target.files[0]); e.target.value=''; });
+el.resetBtn.addEventListener('click',           resetLibrary);
+el.settingsSaveBtn.addEventListener('click',    saveCurrentSet);
+el.settingsGoLibraryBtn.addEventListener('click',()=>navigate('libreria'));
+
+/* ── INIT ───────────────────────────────────────────── */
+loadState();
+ensurePrimaryCategoryIncluded();
+if(!state.ideas.length){ state.ideas = generateIdeas(state.ideaCount); saveState(); }
+render();
+</script>
+</body>
+</html>
